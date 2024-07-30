@@ -1,111 +1,90 @@
 from flask import Flask, request, jsonify
-import random
 import requests
-import json
-import time
 
 app = Flask(__name__)
 
-def generate_seed():
-    return random.randint(0, 3999999999)
+# Common headers
+headers1 = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"
+}
 
-seed_value = generate_seed()
+headers2 = {
+    "Content-Type": "application/json",
+    "User-Agent": "Mozilla/5.0 (compatible; MSIE 9.0; Windows; U; Windows NT 6.2; x64; en-US Trident/5.0)"
+}
 
-def fetch_url(url, user_agent):
-    headers = {
-        "Host": "www.decohere.ai",
-        "User-Agent": user_agent,
-        "Accept": "*/*",
-        "X-Requested-With": "mark.via",
-        "Sec-Fetch-Site": "same-origin",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Dest": "empty",
-        "Referer": "https://www.decohere.ai/create",
-        "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
-    }
-    response = requests.get(url, headers=headers)
-    decoded_response = response.json()
-    return decoded_response.get('turboToken')
+headers3 = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0",
+    "Content-Type": "application/json"
+}
 
-def fetch_with_auth(url, data, authorization, user_agent):
-    headers = {
-        "Host": "turbo.decohere.ai",
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {authorization}",
-        "User-Agent": user_agent,
-        "Accept": "*/*",
-        "Origin": "https://www.decohere.ai",
-        "X-Requested-With": "mark.via",
-        "Sec-Fetch-Site": "same-site",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Dest": "empty",
-        "Referer": "https://www.decohere.ai/create",
-        "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
-    }
-    response = requests.post(url, headers=headers, json=data)
-    return {
-        'response': response.text,
-        'http_code': response.status_code
-    }
+def send_request(url, headers, data=None):
+    if data is not None:
+        response = requests.post(url, headers=headers, json=data)
+    else:
+        response = requests.get(url, headers=headers)
+    return response
 
-def fetch_and_display_images(prompt, image_number, turboToken, user_agent):
-    url_generate_turbo = "https://turbo.decohere.ai/generate/turbo"
-    images = []
+@app.route('/api/member/forgot_password', methods=['GET'])
+def forgot_password():
+    phone = request.args.get("phone")
+    if not phone:
+        return jsonify({"error": "Phone number is required"}), 400
 
-    for i in range(image_number):
-        data = {
-            "prompt": prompt,
-            #"seed": 18332673 + i, # Incrementing seed for different images
-            "seed": seed_value + i,
-            "width": 576,
-            "height": 1024,
-            "steps": 4,
-            "safety_filter": True,
-            "enhance": True,
-            "submission_time": int(time.time()),
-            "customer_id": "not_signed_in"
-        }
+    # First Request
+    url1 = "https://www.jaya9.win/api/member/requestCaptchaCode?captcha_id=af51588d-4287-47a5-ac36-b5bb11946bbb&captcha_code=5204"
+    response1 = send_request(url1, headers1)
 
-        result = fetch_with_auth(url_generate_turbo, data, turboToken, user_agent)
+    # Second Request
+    url2 = "https://www.jaya9.win/api/member"
+    phn = ltrim(phone, '0')
+    data2 = {
+        "membercode": "a" + phn,
+        "password": phn,
+        "currency": "BDT",
+        "email": "",
+        "registration_site": "desktop",
+        "mobile": phn,
+        "line": "",
+        "referral_code": "",
+        "is_early_bird": "0",
+        "domain": "https://www.jaya9.win",
+        "language": "bd",
+        "reg_type": 2,
+        "agent_team": "",
+        "utm_source": None,
+        "utm_medium": None,
+        "utm_campaign": None,
+        "s2": None,
+        "fp": "444dbac87a" + phn + "b5132f89dcf11d1676727a",
+        "c_id": None,
+        "pid": None,
+        "stag": None,
+        "tracking_url": None,
+        "captcha_id": "6f736b71-8188-4615-bef5-f5a83646d4a8",
+        "captcha_code": "1357"
+    }
+    response2 = send_request(url2, headers2, data2)
 
-        if result['http_code'] == 200:
-            response_data = json.loads(result['response'])
-            image_data = response_data.get('image', '')
-            images.append(image_data)
-        else:
-            return {
-                'error': f"Error: HTTP status code {result['http_code']}"
-            }
+    # Third Request
+    url3 = "https://www.jaya9.win/api/member/requestCaptchaCode?captcha_id=af51588d-4287-47a5-ac36-b5bb11946bbb&captcha_code=8919"
+    response3 = send_request(url3, headers1)
 
-    return images
+    # Fourth Request
+    url4 = "https://www.jaya9.win/api/member/reqFgtPsw"
+    data4 = {
+        'mobile': phn,
+        'prefix': '+880',
+        'captcha_id': 'af51588d-4287-47a5-ac36-b5bb11946bbb',
+        'captcha_code': '8919'
+    }
+    response4 = send_request(url4, headers3, data4)
 
-@app.route('/generate-images', methods=['POST'])
-def generate_images():
-    data = request.get_json()
-    if 'prompt' in data and 'image' in data:
-        prompt = data['prompt']
-        image_number = int(data['image'])
+    return jsonify({"response": response4.text, "message": "api owner Mustafizur Rahman"}), 200
 
-        user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
-            "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36",
-        ]
-        random_user_agent = user_agents[random.randint(0, len(user_agents) - 1)]
-
-        url_account_details = "https://www.decohere.ai/api/accountDetails?token=turbo"
-        turboToken = fetch_url(url_account_details, random_user_agent)
-
-        if not turboToken:
-            return jsonify({'error': 'Error fetching turboToken.'}), 500
-
-        images = fetch_and_display_images(prompt, image_number, turboToken, random_user_agent)
-        if 'error' in images:
-            return jsonify(images), 500
-        else:
-            return jsonify(images), 200
-    else:
-        return jsonify({'error': 'Invalid parameters.'}), 400
+def ltrim(str, trim_char) {
+    return ltrim($str, $trim_char); 
+}
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)
