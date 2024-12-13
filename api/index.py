@@ -3,88 +3,43 @@ import requests
 
 app = Flask(__name__)
 
-# Common headers
-headers1 = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"
-}
+@app.route('/', methods=['GET'])
+def get_instagram_info():
+    user = request.args.get('user')
+    if not user:
+        return jsonify({"error": "User parameter is missing"}), 400
 
-headers2 = {
-    "Content-Type": "application/json",
-    "User-Agent": "Mozilla/5.0 (compatible; MSIE 9.0; Windows; U; Windows NT 6.2; x64; en-US Trident/5.0)"
-}
+    url = f"https://instagram-scraper-2022.p.rapidapi.com/ig/info_username/?user={user}"
 
-headers3 = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0",
-    "Content-Type": "application/json"
-}
+    headers = {
+        "X-RapidAPI-Host": "instagram-scraper-2022.p.rapidapi.com",
+        "X-RapidAPI-Key": "1ada1dca31msh859f6cf42873fa7p132780jsn3b8c1cea2f84"
+    }
 
-def send_request(url, headers, data=None):
-    if data is not None:
-        response = requests.post(url, headers=headers, json=data)
-    else:
-        response = requests.get(url, headers=headers)
-    return response
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        
+        data = response.json()
+        user_data = data.get("user", {})
 
-@app.route('/api/member/forgot_password', methods=['GET'])
-def forgot_password():
-    phone = request.args.get("phone")
-    if not phone:
-        return jsonify({"error": "Phone number is required"}), 400
+        info = {
+            "profile": user_data.get("profile_pic_url"),
+            "name": user_data.get("full_name"),
+            "username": user_data.get("username"),
+            "is_private": user_data.get("is_private"),
+            "follower": user_data.get("follower_count"),
+            "following": user_data.get("following_count"),
+            "is_business": user_data.get("is_business"),
+            "bio": user_data.get("biography"),
+            "is_verified": user_data.get("is_verified"),
+            "dev": "Join @ihc_apis For More Unique Apis"
+        }
 
-    # First Request
-    url1 = "https://www.jaya9.win/api/member/requestCaptchaCode?captcha_id=af51588d-4287-47a5-ac36-b5bb11946bbb&captcha_code=5204"
-    response1 = send_request(url1, headers1)
+        return jsonify(info)
 
-    # Second Request
-    url2 = "https://www.jaya9.win/api/member"
-    phn = ltrim(phone, '0')
-    data2 = {
-        "membercode": "a" + phn,
-        "password": phn,
-        "currency": "BDT",
-        "email": "",
-        "registration_site": "desktop",
-        "mobile": phn,
-        "line": "",
-        "referral_code": "",
-        "is_early_bird": "0",
-        "domain": "https://www.jaya9.win",
-        "language": "bd",
-        "reg_type": 2,
-        "agent_team": "",
-        "utm_source": None,
-        "utm_medium": None,
-        "utm_campaign": None,
-        "s2": None,
-        "fp": "444dbac87a" + phn + "b5132f89dcf11d1676727a",
-        "c_id": None,
-        "pid": None,
-        "stag": None,
-        "tracking_url": None,
-        "captcha_id": "6f736b71-8188-4615-bef5-f5a83646d4a8",
-        "captcha_code": "1357"
-    }
-    response2 = send_request(url2, headers2, data2)
-
-    # Third Request
-    url3 = "https://www.jaya9.win/api/member/requestCaptchaCode?captcha_id=af51588d-4287-47a5-ac36-b5bb11946bbb&captcha_code=8919"
-    response3 = send_request(url3, headers1)
-
-    # Fourth Request
-    url4 = "https://www.jaya9.win/api/member/reqFgtPsw"
-    data4 = {
-        'mobile': phn,
-        'prefix': '+880',
-        'captcha_id': 'af51588d-4287-47a5-ac36-b5bb11946bbb',
-        'captcha_code': '8919'
-    }
-    response4 = send_request(url4, headers3, data4)
-
-    return jsonify({"response": response4.text, "message": "api owner Mustafizur Rahman"}), 200
-
-def ltrim(str, trim_char) {
-    return ltrim($str, $trim_char); 
-}
+    except requests.exceptions.RequestException as err:
+        return jsonify({"error": f"Request error: {str(err)}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)
